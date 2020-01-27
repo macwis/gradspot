@@ -26,7 +26,7 @@ Contains Symfony custom service to crawl the job postings including couple of mo
 For DEMO: `http://localhost:8000/api/crawler/spotify?debug=true`
 
 Adding param `debug=true` limits the crawl just to first page. If you have a bit more time
-you can easily go full scale with around 128 jobs...
+you can easily go full scale ...
 
 For all postings in Sweden: `http://localhost:8000/api/crawler/spotify`
 

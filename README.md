@@ -18,10 +18,8 @@ Contains Symfony custom service to crawl the job postings including couple of mo
 ## How to run?
 
 1. `git clone git@github.com:macwis/gradspot.git`
-2. `composer install`
-3. And with that just hit:
-
-`symfony server:start`
+2. `cd gradspot && composer install`
+3. And with that just hit: `symfony server:start`
 
 For DEMO: `http://localhost:8000/api/crawler/spotify?debug=true`
 

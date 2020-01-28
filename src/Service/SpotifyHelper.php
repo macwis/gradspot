@@ -1,59 +1,87 @@
 <?php
+/*
+ * Basic Symfony service to get job postings from Spotify.
+ */
 
 namespace App\Service;
 
-use Psr\Log\LoggerInterface;
 use Goutte\Client;
+use Psr\Log\LoggerInterface;
 
+/**
+ * Spotify crawler Symfony service class
+ */
 class SpotifyHelper
 {
+    /**
+     * Predefined spotify job page URL
+     */
+    const URL = 'https://www.spotifyjobs.com/wp-admin/admin-ajax.php';
+    /**
+     * @var LoggerInterface
+     */
     private $logger;
-    private $all_items;
+    /**
+     * @var array
+     */
+    private $allItems;
 
-    public function __construct(LoggerInterface $logger)
+    /**
+     * @param LoggerInterface $logger Logger interface
+     */
+    public function __construct(LoggerInterface $logger = null)
     {
         $this->logger = $logger;
     }
 
     /**
      * Method to run the crawling of jobs for Spotify Sweden.
+     *
+     * @param boolean $pagesLimit Limit the number of pages for crawling
+     *
+     * @return array
      */
-    public function run()
+    public function run($pagesLimit = 0)
     {
-        $this->all_items = array();
-        $new_items = True;
-        $page_nr = 1;
+        $this->allItems = [];
+        $newItems = true;
+        $pageNr = 1;
         do {
-            $new_items = ($this->spotifyCrawler($page_nr)->data->items);
-            foreach ($new_items as &$item) {
+            $newItems = ($this->spotifyCrawler($pageNr)->data->items);
+            foreach ($newItems as &$item) {
                 // Let's make a match for the field name with the task description
                 $item->headline = $item->title;
                 // Enrich the object with a description
                 $item->description = $this->extractSpotifyJobPostDescription($item->url);
                 // Remove the unnecessary information for the task
-                unset($item->title);
-                unset($item->locations);
-                unset($item->categories);
+                unset($item->title, $item->locations, $item->categories);
             }
-            $this->all_items = array_merge($this->all_items, $new_items);
-            $new_count = count($new_items);
-            $page_nr++;
-            $this->logger->info("Found few more job posts $new_count!");
-    
+            $this->allItems = array_merge($this->allItems, $newItems);
+            $newCount = \count($newItems);
+            $this->quickLog("Another $newCount of job posts retrieved!");
             // Symfony allows better, but for the sake of quick demo,
             // hack for debugging: no of items limit if &debug=true present in URL.
-            if (isset($_GET['debug']) and $page_nr > 1) break; 
-    
-        } while ($new_count > 0);
-        return $this->all_items;
+            if ($pageNr >= $pagesLimit) {
+                break;
+            }
+            // Increment the page counter
+            ++$pageNr;
+        } while ($newCount > 0);
+        return $this->allItems;
     }
 
     /**
      * POST request method to retrieve the data.
+     *
+     * @param int $pageNr Numer of page to crawl
+     *
+     * @return array JSON data from the HTTP POST request
+     *
+     * @throws \RuntimeException Exception when the HTTP POST request for the data fails
      */
-    private function spotifyCrawler(int $pageNr = 1) {
-        $url = 'https://www.spotifyjobs.com/wp-admin/admin-ajax.php';
-        $data = array(
+    private function spotifyCrawler(int $pageNr = 1)
+    {
+        $data = [
             'action' => 'get_jobs',
             'pageNr' => $pageNr,
             'perPage' => 16,
@@ -61,31 +89,33 @@ class SpotifyHelper
             'category' => 0,
             'location' => 0,
             'search' => '',
-            'locations[]' => 'sweden'
-        );
-        $options = array(
-            'http' => array(
-                'header'  => "Content-type: application/x-www-form-urlencoded\r\n",
-                'method'  => 'POST',
-                'content' => http_build_query($data)
-            )
-        );
+            'locations[]' => 'sweden',
+        ];
+        $options = [
+            'http' => [
+                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+                'method' => 'POST',
+                'content' => http_build_query($data),
+            ],
+        ];
         $context = stream_context_create($options);
-        $result = file_get_contents($url, false, $context);
-        if ($result === FALSE) {
-            // TODO: Handle error
+        $result = file_get_contents(self::URL, false, $context);
+        if (false === $result) {
+            throw new \RuntimeException(sprintf('Request to Spotify failed!'));
         }
-        
-        $json_data = json_decode($result);
-        return $json_data;
+        $jsonData = json_decode($result);
+        return $jsonData;
     }
 
     /**
      * Using the regexp iterate through and populate years_required property.
+     *
+     * @param array $jobposts An job posts collection to be used for the detection
      */
-    static public function detectYears(&$jobposts) {
+    public function detectYears(&$jobposts)
+    {
         foreach ($jobposts as &$jobpost) {
-            $jobpost->years_required = self::getYears($jobpost->description);
+            $jobpost->yearsRequired = $this->getYears($jobpost->description);
         }
     }
 
@@ -95,23 +125,33 @@ class SpotifyHelper
      *   3 - Senior/Manager
      *   2 - Somehow experienced
      *   1 - Junior/Intern
-     *   0 - Unknown
+     *   0 - Unknown.
+     *
+     * @param array $jobposts An job posts collection to be used for the detection
      */
-    static function detectExperience(&$jobposts) {
+    public function detectExperience(&$jobposts)
+    {
         foreach ($jobposts as &$jobpost) {
-            if (self::contains($jobpost->headline, array('senior', 'manager')))
+            if ($this->contains($jobpost->headline, ['senior', 'manager'])) {
                 $level = 3;
-            elseif (self::contains($jobpost->description, array('experience', 'experienced')))
+            } elseif ($this->contains($jobpost->description, ['experience', 'experienced'])) {
                 $level = 2;
-            elseif (self::contains($jobpost->description, array('junior','internship')))
+            } elseif ($this->contains($jobpost->description, ['junior', 'internship'])) {
                 $level = 1;
-            else
+            } else {
                 $level = 0;
-            $jobpost->experience_level = $level;
+            }
+            $jobpost->experienceLevel = $level;
         }
     }
 
-    static public function cleanUp(&$jobposts) {
+    /**
+     * Converts job posts stdObjs into array.
+     *
+     * @param array $jobposts An job posts collection to be used for the detection
+     */
+    public function cleanUp(&$jobposts)
+    {
         foreach ($jobposts as &$jobpost) {
             $jobpost = get_object_vars($jobpost);
         }
@@ -119,64 +159,61 @@ class SpotifyHelper
 
     /**
      * Extracts job posting description from a linked page.
+     *
+     * @param string $url A job post page url
+     *
+     * @return string Job description
      */
-    private function extractSpotifyJobPostDescription($url) {
+    private function extractSpotifyJobPostDescription($url)
+    {
         $client = new Client();
-        $this->logger->info("Getting description from $url");
+        $this->quickLog("Getting description from $url");
         $crawler = $client->request('GET', $url);
         return $crawler->filter('.column-inner')->html();
     }
 
     /**
      * Extracts the number of years from the job post description.
-     * Manually tested regexp:
-     *   Using: https://regex101.com/
-     * Regexp:
-     *   (([\w\-\+]+)\s+years)
-     * Test case:
-     *   5 years of previous experience 
-     *   2+ years of relevant experience
-     *   3-5 years of work experience
-     *   few years of people management experience
-     *   experience of 3-7+ years
-     *   several years of experience
-     *   At least 5 years of previous experience from working in the music or entertainment industry
-     *   We believe you have approximately 3-5 years of work experience, an impressive portfolio demonstrating design in digital projects and a strong knowledge of Adobe Creative suite (bonus for skills in motion graphics)
-     *   You are a manager with a few years of people management experience.
-     *   You have 5 years of previous experience 
-     *   You worked 2+ years of relevant experience
-     *   Has 3-5 years of work experience
-     *   Hopefully few years of people management experience
-     *   Got experience of 3-7+ years
-     *   Present several years of experience
-     * 
-     * @param string $description   Job post description
+     *
+     * @param string $description Job post description
+     *
+     * @return string Descriptive years of experience
      */
-    static private function getYears($description)
+    public function getYears($description)
     {
-        // TODO: Hard coded search phrases - should be moved to a config file.
-        $search_phrases = array(
-            'years of previous experience',
-            'years of relevant experience',
-            'years of work experience',
-            'years of people management experience',
-            'years of experience',
-            'years',
-        );
-        foreach ($search_phrases as $search) {
-            if (preg_match('(([\w\-\+]+)\s+'.$search.')', $description, $matches)) {
-                return $matches[1];
-            }
+        if (preg_match('(([\w\-\+]+)\s+years)', $description, $matches)) {
+            return $matches[1];
         }
-        return '-';
-    }   
+        return 'n/a';
+    }
 
-    static private function contains($str, array $arr)
+    /**
+     * Checks if any of the given from an array is in the string
+     *
+     * @param string Input string
+     * @param array A collection of strings to check
+     *
+     * @return boolean Result true or false
+     */
+    public static function contains($str, array $arr)
     {
-        foreach($arr as $a) {
-            if (stripos($str,$a) !== false) return true;
+        foreach ($arr as $a) {
+            if (false !== stripos($str, $a)) {
+                return true;
+            }
         }
         return false;
     }
 
+    /**
+     * Wrapper function for the logging
+     *
+     * @param string $msg Message to be written in the logs
+     */
+    private function quickLog($msg)
+    {
+        if ($this->logger !== null) {
+            $this->logger->info($msg);
+        }
+    }
 }

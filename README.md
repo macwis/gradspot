@@ -3,6 +3,7 @@
 Project name from two names combined.
 
 
+
 ## Core files
 
 `CrawlerController.php`
@@ -27,6 +28,18 @@ Adding param `debug=true` limits the crawl just to first page. If you have a bit
 you can easily go full scale ...
 
 For all postings in Sweden: `http://localhost:8000/api/crawler/spotify`
+
+
+
+## Tests
+
+Tests are included in:
+
+`tests/Service/SpotifyHelperTest.php`
+
+To run tests simply execute Symfony tests:
+
+`./bin/phpunit`
 
 
 

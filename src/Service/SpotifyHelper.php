@@ -111,6 +111,8 @@ class SpotifyHelper
      * Using the regexp iterate through and populate years_required property.
      *
      * @param array $jobposts An job posts collection to be used for the detection
+     *
+     * @return void
      */
     public function detectYears(&$jobposts)
     {
@@ -128,6 +130,8 @@ class SpotifyHelper
      *   0 - Unknown.
      *
      * @param array $jobposts An job posts collection to be used for the detection
+     *
+     * @return void
      */
     public function detectExperience(&$jobposts)
     {
@@ -149,6 +153,8 @@ class SpotifyHelper
      * Converts job posts stdObjs into array.
      *
      * @param array $jobposts An job posts collection to be used for the detection
+     *
+     * @return void
      */
     public function cleanUp(&$jobposts)
     {
@@ -175,7 +181,7 @@ class SpotifyHelper
     /**
      * Extracts the number of years from the job post description.
      *
-     * @param string $description Job post description
+     * @param  mixed $description Job post description
      *
      * @return string Descriptive years of experience
      */
@@ -209,6 +215,8 @@ class SpotifyHelper
      * Wrapper function for the logging
      *
      * @param string $msg Message to be written in the logs
+     *
+     * @return void
      */
     private function quickLog($msg)
     {

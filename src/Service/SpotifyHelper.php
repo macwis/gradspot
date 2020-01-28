@@ -18,11 +18,11 @@ class SpotifyHelper
      */
     const URL = 'https://www.spotifyjobs.com/wp-admin/admin-ajax.php';
     /**
-     * @var LoggerInterface
+     * @var LoggerInterface Logger interface
      */
     private $logger;
     /**
-     * @var array
+     * @var array Local storage of items
      */
     private $allItems;
 
@@ -61,7 +61,7 @@ class SpotifyHelper
             $this->quickLog("Another $newCount of job posts retrieved!");
             // Symfony allows better, but for the sake of quick demo,
             // hack for debugging: no of items limit if &debug=true present in URL.
-            if ($pageNr >= $pagesLimit) {
+            if ($pagesLimit != 0 and $pageNr >= $pagesLimit) {
                 break;
             }
             // Increment the page counter

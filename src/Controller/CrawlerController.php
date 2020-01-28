@@ -7,6 +7,7 @@ namespace App\Controller;
 
 use Symfony\Component\Routing\Annotation\Route;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\Request;
 use App\Service\SpotifyHelper;
 
 /**
@@ -19,14 +20,15 @@ class CrawlerController extends AbstractController
      *
      * @Route("/api/crawler/spotify")
      */
-    public function spotify($demo = false, SpotifyHelper $spotifyHelper)
+    public function spotify(SpotifyHelper $spotifyHelper, Request $request)
     {
         // 1. Create a Crawler
         // Extract:
         // 1. Titles
         // 2. Headlines
         // 3. Descriptions
-        $jobposts = $spotifyHelper->run($demo == true ? 2 : 0);
+        $demo = $request->query->get('demo') != null ? true : false;
+        $jobposts = $spotifyHelper->run($demo ? 1 : 0);
 
         // 2. Detect experience
         $spotifyHelper->detectExperience($jobposts);

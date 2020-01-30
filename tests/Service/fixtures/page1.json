@@ -1,0 +1,64 @@
+{
+  "success":true,
+  "data":{
+    "items":[
+      {
+        "url":"\/job\/rpa-automation-developer-2\/",
+        "title":"RPA &#8211; Automation Developer",
+        "categories":[
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#category=engineering",
+            "slug":"engineering",
+            "name":"Engineering"
+          },
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#category=financial-engineering-and-fraud-engineering",
+            "slug":"financial-engineering-and-fraud-engineering",
+            "name":"Financial Engineering and Fraud"
+          }
+        ],
+        "locations":[
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#location=stockholm",
+            "slug":"stockholm",
+            "name":"Stockholm"
+          },
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#location=sweden",
+            "slug":"sweden",
+            "name":"Sweden"
+          }
+        ]
+      },
+      {
+        "url":"\/job\/machine-learning-engineer-growth-opportunities\/",
+        "title":"Machine Learning Engineer &#8211; Growth",
+        "categories":[
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#category=engineering",
+            "slug":"engineering",
+            "name":"Engineering"
+          },
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#category=markets-engineering",
+            "slug":"markets-engineering",
+            "name":"Markets"
+          }
+        ],
+        "locations":[
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#location=stockholm",
+            "slug":"stockholm",
+            "name":"Stockholm"
+          },
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#location=sweden",
+            "slug":"sweden",
+            "name":"Sweden"
+          }
+        ]
+      }
+    ],
+    "show_pager":true
+  }
+}

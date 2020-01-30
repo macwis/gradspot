@@ -5,7 +5,7 @@
 
 namespace App\Service;
 
-use Goutte\Client;
+use GuzzleHttp\Client;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -55,17 +55,21 @@ class SpotifyHelper
     private $pageItems = [];
 
     /**
+     * Class instance constructor.
+     *
+     * @param null $httpClient
      * @param LoggerInterface $logger Logger interface
      */
     public function __construct(LoggerInterface $logger = null)
     {
         $this->logger = $logger;
+        $this->httpClient = new Client();
     }
 
     /**
      * Method to run the crawling of jobs for Spotify Sweden.
      *
-     * @param boolean $pagesLimit Limit the number of pages for crawling
+     * @param int $pagesLimit Limit the number of pages for crawling
      *
      * @return array
      */
@@ -187,6 +191,15 @@ class SpotifyHelper
     }
 
     /**
+     * Option to pass customized HTTP client class, helpful for unit-tests to pass a mocked client for requests.
+     *
+     * @param GuzzleHttp $httpClient
+     */
+    public function setHttpClient(Client $httpClient) {
+        $this->httpClient = $httpClient;
+    }
+
+    /**
      * POST request method to retrieve the data.
      *
      * @param int $pageNr Numer of page to crawl
@@ -195,17 +208,10 @@ class SpotifyHelper
      */
     private function loadJobPostList(int $pageNr = 1)
     {
-        // PHP-native way, since the data retrieved is a nice JSON, no parsing required.
         $params = self::URL_PARAMS;  // use default params set
         $params['pageNr'] = $pageNr;  // overwrite page nr param
-        $options = self::URL_OPTIONS;  // use default options set
-        $options['http']['content'] = http_build_query($params);  // adjust options
-        $context = stream_context_create($options);
-        $result = file_get_contents(self::URL, false, $context);
-        if (false === $result) {
-            throw new \RuntimeException(sprintf('Request to Spotify failed!'));  // @codeCoverageIgnore
-        }
-        $jsonData = json_decode($result);
+        $response = $this->httpClient->request('POST', self::URL, ['form_params' => $params]);
+        $jsonData = json_decode($response->getBody());
         $this->cleanUpAndLoad($jsonData->data->items);
     }
 
@@ -236,11 +242,12 @@ class SpotifyHelper
      */
     private function loadJobPostDetails($url)
     {
-        // Using dedicated Goutte client to quickly get the selected content.
-        $client = new Client();
         $this->quickLog("Getting description from $url");
-        $crawler = $client->request('GET', $url);
-        return $crawler->filter('.column-inner')->html();
+        $response = $this->httpClient->request('GET', $url);
+        $content = $response->getBody();
+        $startPos = stripos($content, '<div class="column-inner">');
+        $endPos = stripos($content, '<div class="col-md-4 col-lg-3">');
+        return trim(substr($content, $startPos,$endPos - $startPos));
     }
 
     /**

@@ -1,0 +1,36 @@
+{
+  "success":true,
+  "data":{
+    "items":[
+      {
+        "url":"\/job\/director-of-engineering-premium-rd\/",
+        "title":"Director of Engineering &#8211; Premium R&amp;D",
+        "categories":[
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#category=engineering",
+            "slug":"engineering",
+            "name":"Engineering"
+          },
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#category=premium-tier-engineering",
+            "slug":"premium-tier-engineering",
+            "name":"Premium Tier"
+          }
+        ],
+        "locations":[
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#location=stockholm",
+            "slug":"stockholm",
+            "name":"Stockholm"
+          },
+          {
+            "url":"https:\/\/www.spotifyjobs.com\/search-jobs\/#location=sweden",
+            "slug":"sweden",
+            "name":"Sweden"
+          }
+        ]
+      }
+    ],
+    "show_pager":true
+  }
+}

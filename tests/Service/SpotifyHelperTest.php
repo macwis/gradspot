@@ -6,8 +6,11 @@
 namespace App\Tests\Service;
 
 use App\Service\SpotifyHelper;
-use PHPUnit\Exception;
 use PHPUnit\Framework\TestCase;
+use GuzzleHttp\Client;
+use GuzzleHttp\Handler;
+use GuzzleHttp\HandlerStack;
+use GuzzleHttp\Psr7\Response;
 
 /**
  * Test suite.
@@ -108,9 +111,29 @@ class SpotifyHelperTest extends TestCase
      */
     public function testLoadItems()
     {
+        $fixtures = [
+            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/page1.json'),
+            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/jobpost1.html'),
+            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/jobpost2.html'),
+            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/page2.json'),
+            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/jobpost3.html'),
+            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/page3.json'),
+        ];
+        $mock = new Handler\MockHandler([
+            new Response(200, [], $fixtures[0]),
+            new Response(200, [], $fixtures[1]),
+            new Response(200, [], $fixtures[2]),
+            new Response(200, [], $fixtures[3]),
+            new Response(200, [], $fixtures[4]),
+        ]);
+        $handlerStack = HandlerStack::create($mock);
+        $client = new Client(['handler' => $handlerStack]);
         $spotifyHelper = new SpotifyHelper();
+        // Let's set our mocked client and avoid sending remote HTTP calls
+        $spotifyHelper->setHttpClient($client);
+        // Load items with mocked requests
         $spotifyHelper->loadItems(2);
-        $this->assertEquals(32, count($spotifyHelper->getAllItems()));
+        $this->assertEquals(3, count($spotifyHelper->getAllItems()));
         foreach ($spotifyHelper->getAllItems() as $item) {
             $this->assertNotEmpty($item['headline']);
             $this->assertNotEmpty($item['description']);
@@ -125,5 +148,8 @@ class SpotifyHelperTest extends TestCase
         foreach ($spotifyHelper->getAllItems() as $item) {
             $this->assertNotEmpty($item['experienceLevel']);
         }
+        $this->assertEquals('Director of Engineering &#8211; Premium R&amp;D', $spotifyHelper->getAllItems()[2]['headline']);
+        $this->assertContains('You will lead engineering for the POP tribe, a growing team with 70+ cross functional members split across our Stockholm, London and New York offices. ', $spotifyHelper->getAllItems()[2]['description']);
+        $mock->reset();
     }
 }

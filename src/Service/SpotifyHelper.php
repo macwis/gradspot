@@ -195,6 +195,7 @@ class SpotifyHelper
      */
     private function loadJobPostList(int $pageNr = 1)
     {
+        // PHP-native way, since the data retrieved is a nice JSON, no parsing required.
         $params = self::URL_PARAMS;  // use default params set
         $params['pageNr'] = $pageNr;  // overwrite page nr param
         $options = self::URL_OPTIONS;  // use default options set
@@ -235,6 +236,7 @@ class SpotifyHelper
      */
     private function loadJobPostDetails($url)
     {
+        // Using dedicated Goutte client to quickly get the selected content.
         $client = new Client();
         $this->quickLog("Getting description from $url");
         $crawler = $client->request('GET', $url);

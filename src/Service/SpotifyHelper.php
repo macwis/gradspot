@@ -9,22 +9,50 @@ use Goutte\Client;
 use Psr\Log\LoggerInterface;
 
 /**
- * Spotify crawler Symfony service class
+ * Spotify crawler Symfony service class.
  */
 class SpotifyHelper
 {
     /**
-     * Predefined spotify job page URL
+     * Predefined spotify job page URL.
      */
     const URL = 'https://www.spotifyjobs.com/wp-admin/admin-ajax.php';
+    /**
+     * Predefined spotify job page URL params.
+     */
+    const URL_PARAMS = [
+        'action' => 'get_jobs',
+        'pageNr' => 1,
+        'perPage' => 16,
+        'featuredJobs' => '',
+        'category' => 0,
+        'location' => 0,
+        'search' => '',
+        'locations[]' => 'sweden',
+    ];
+    /**
+     * Predefined set of options for the request.
+     */
+    const URL_OPTIONS = [
+        'http' => [
+            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
+            'method' => 'POST',
+            'content' => '',
+        ],
+    ];
+
     /**
      * @var LoggerInterface Logger interface
      */
     private $logger;
     /**
-     * @var array Local storage of items
+     * @var array Storage of the loaded job post items
      */
-    private $allItems;
+    private $allItems = [];
+    /**
+     * @var array Buffer for the current page processing
+     */
+    private $pageItems = [];
 
     /**
      * @param LoggerInterface $logger Logger interface
@@ -41,141 +69,36 @@ class SpotifyHelper
      *
      * @return array
      */
-    public function run($pagesLimit = 0)
+    public function loadItems($pagesLimit = 0)
     {
         $this->allItems = [];
-        $newItems = true;
         $pageNr = 1;
+        // Stop the loop when there are no more new items
+        // and when the pages limit is exceeded.
         do {
-            $newItems = ($this->spotifyCrawler($pageNr)->data->items);
-            foreach ($newItems as &$item) {
-                // Let's make a match for the field name with the task description
-                $item->headline = $item->title;
-                // Enrich the object with a description
-                $item->description = $this->extractSpotifyJobPostDescription($item->url);
-                // Remove the unnecessary information for the task
-                unset($item->title, $item->locations, $item->categories);
+            $this->loadJobPostList($pageNr);
+            foreach ($this->pageItems as &$item) {
+                // Enrich with a description
+                $item['description'] = $this->loadJobPostDetails($item['url']);
             }
-            $this->allItems = array_merge($this->allItems, $newItems);
-            $newCount = \count($newItems);
-            $this->quickLog("Another $newCount of job posts retrieved!");
-            // Symfony allows better, but for the sake of quick demo,
-            // hack for debugging: no of items limit if &debug=true present in URL.
-            if ($pagesLimit != 0 and $pageNr >= $pagesLimit) {
-                break;
-            }
+            $this->allItems = array_merge($this->allItems, $this->pageItems);
+            $this->quickLog('Another page of job posts retrieved!');
             // Increment the page counter
             ++$pageNr;
-        } while ($newCount > 0);
-        return $this->allItems;
-    }
-
-    /**
-     * POST request method to retrieve the data.
-     *
-     * @param int $pageNr Numer of page to crawl
-     *
-     * @return array JSON data from the HTTP POST request
-     *
-     * @throws \RuntimeException Exception when the HTTP POST request for the data fails
-     */
-    private function spotifyCrawler(int $pageNr = 1)
-    {
-        $data = [
-            'action' => 'get_jobs',
-            'pageNr' => $pageNr,
-            'perPage' => 16,
-            'featuredJobs' => '',
-            'category' => 0,
-            'location' => 0,
-            'search' => '',
-            'locations[]' => 'sweden',
-        ];
-        $options = [
-            'http' => [
-                'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-                'method' => 'POST',
-                'content' => http_build_query($data),
-            ],
-        ];
-        $context = stream_context_create($options);
-        $result = file_get_contents(self::URL, false, $context);
-        if (false === $result) {
-            throw new \RuntimeException(sprintf('Request to Spotify failed!'));
-        }
-        $jsonData = json_decode($result);
-        return $jsonData;
+        } while (\count($this->pageItems) > 0
+                    and ! ($pagesLimit != 0 and $pageNr > $pagesLimit));
     }
 
     /**
      * Using the regexp iterate through and populate years_required property.
      *
      * @param array $jobposts An job posts collection to be used for the detection
-     *
-     * @return void
      */
-    public function detectYears(&$jobposts)
+    public function addDetectedYears()
     {
-        foreach ($jobposts as &$jobpost) {
-            $jobpost->yearsRequired = $this->getYears($jobpost->description);
+        foreach ($this->allItems as &$jobpost) {
+            $jobpost['yearsRequired'] = self::getYears($jobpost['description']);
         }
-    }
-
-    /**
-     * Trying to estimate the expected experience level.
-     * I have divided into 3 basic categories:
-     *   3 - Senior/Manager
-     *   2 - Somehow experienced
-     *   1 - Junior/Intern
-     *   0 - Unknown.
-     *
-     * @param array $jobposts An job posts collection to be used for the detection
-     *
-     * @return void
-     */
-    public function detectExperience(&$jobposts)
-    {
-        foreach ($jobposts as &$jobpost) {
-            if ($this->contains($jobpost->headline, ['senior', 'manager'])) {
-                $level = 3;
-            } elseif ($this->contains($jobpost->description, ['experience', 'experienced'])) {
-                $level = 2;
-            } elseif ($this->contains($jobpost->description, ['junior', 'internship'])) {
-                $level = 1;
-            } else {
-                $level = 0;
-            }
-            $jobpost->experienceLevel = $level;
-        }
-    }
-
-    /**
-     * Converts job posts stdObjs into array.
-     *
-     * @param array $jobposts An job posts collection to be used for the detection
-     *
-     * @return void
-     */
-    public function cleanUp(&$jobposts)
-    {
-        foreach ($jobposts as &$jobpost) {
-            $jobpost = get_object_vars($jobpost);
-        }
-    }
-
-    /**
-     * Extracts job posting description from a linked page.
-     *
-     * @param string $url A job post page url
-     *
-     * @return string Job description
-     */
-    private function extractSpotifyJobPostDescription($url)
-    {
-        $client = new Client();
-        $this->quickLog("Getting description from $url");
-        $crawler = $client->request('GET', $url);
-        return $crawler->filter('.column-inner')->html();
     }
 
     /**
@@ -185,7 +108,7 @@ class SpotifyHelper
      *
      * @return string Descriptive years of experience
      */
-    public function getYears($description)
+    public static function getYears($description)
     {
         if (preg_match('(([\w\-\+]+)\s+years)', $description, $matches)) {
             return $matches[1];
@@ -194,7 +117,7 @@ class SpotifyHelper
     }
 
     /**
-     * Checks if any of the given from an array is in the string
+     * Checks if any of the given from an array is in the string.
      *
      * @param string Input string
      * @param array A collection of strings to check
@@ -212,7 +135,114 @@ class SpotifyHelper
     }
 
     /**
-     * Wrapper function for the logging
+     * Detects the experience level of a job post.
+     *
+     * @param string Input string headline
+     * @param string Input string description
+     *
+     * @return int Result number 0-3
+     */
+    public static function detectExperience($headline, $description)
+    {
+        $level = 0;
+        if (self::contains($description, ['junior', 'internship'])) {
+            $level = 1;
+        } elseif (self::contains($headline, ['senior', 'manager'])) {
+            $level = 3;
+        } elseif (self::contains($description, ['experience', 'experienced'])) {
+            $level = 2;
+        } else {
+            $level = 0;
+        }
+        return $level;
+    }
+
+    /**
+     * Getter method to get all job post loaded.
+     *
+     * @return array All job posts currently in processing
+     * @throws \Exception Notify about not loaded data
+     */
+    public function getAllItems()
+    {
+        if (count($this->allItems) > 0) {
+            return $this->allItems;
+        }
+        throw new \Exception('No loaded job posts! Try loadItems() first!');
+    }
+
+    /**
+     * Trying to estimate the expected experience level.
+     * I have divided into 3 basic categories:
+     *   3 - Senior/Manager
+     *   2 - Somehow experienced
+     *   1 - Junior/Intern
+     *   0 - Unknown.
+     */
+    public function addDetectedExperience()
+    {
+        foreach ($this->allItems as &$jobpost) {
+            $jobpost['experienceLevel'] = self::detectExperience($jobpost['headline'], $jobpost['description']);
+        }
+    }
+
+    /**
+     * POST request method to retrieve the data.
+     *
+     * @param int $pageNr Numer of page to crawl
+     *
+     * @throws \RuntimeException Exception when the HTTP POST request for the data fails
+     */
+    private function loadJobPostList(int $pageNr = 1)
+    {
+        $params = self::URL_PARAMS;  // use default params set
+        $params['pageNr'] = $pageNr;  // overwrite page nr param
+        $options = self::URL_OPTIONS;  // use default options set
+        $options['http']['content'] = http_build_query($params);  // adjust options
+        $context = stream_context_create($options);
+        $result = file_get_contents(self::URL, false, $context);
+        if (false === $result) {
+            throw new \RuntimeException(sprintf('Request to Spotify failed!'));  // @codeCoverageIgnore
+        }
+        $jsonData = json_decode($result);
+        $this->cleanUpAndLoad($jsonData->data->items);
+    }
+
+    /**
+     * Converts job posts stdObjs into array.
+     *
+     * @param array $arrayOfStdObjs An job posts collection to be used for the detection
+     */
+    private function cleanUpAndLoad(&$arrayOfStdObjs)
+    {
+        $this->pageItems = [];
+        foreach ($arrayOfStdObjs as $stdObj) {
+            // Let's make a match for the field name with the task description
+            $stdObj->headline = $stdObj->title;
+            // Remove the unnecessary information for the task
+            unset($stdObj->title, $stdObj->locations, $stdObj->categories);
+            // unify the format to an array
+            $this->pageItems[] = get_object_vars($stdObj);
+        }
+    }
+
+    /**
+     * Extracts job posting description from a linked page.
+     *
+     * @param string $url A job post page url
+     *
+     * @return string Job description
+     */
+    private function loadJobPostDetails($url)
+    {
+        $client = new Client();
+        $this->quickLog("Getting description from $url");
+        $crawler = $client->request('GET', $url);
+        return $crawler->filter('.column-inner')->html();
+    }
+
+    /**
+     * Wrapper function for the logging.
      *
      * @param string $msg Message to be written in the logs
      *

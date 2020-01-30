@@ -6,15 +6,16 @@
 namespace App\Tests\Service;
 
 use App\Service\SpotifyHelper;
+use PHPUnit\Exception;
 use PHPUnit\Framework\TestCase;
 
 /**
- * Test suite
+ * Test suite.
  */
 class SpotifyHelperTest extends TestCase
 {
     /**
-     * Tests regexp for finding the required years of experience
+     * Tests regexp for finding the required years of experience.
      */
     public function testGetYears()
     {
@@ -35,11 +36,6 @@ class SpotifyHelperTest extends TestCase
             'Got experience of 3-7+ years',
             'Present several years of experience.',
         ];
-        $sh = new SpotifyHelper();
-        $result = [];
-        foreach ($testCases as $testCase) {
-            $result[] = $sh->getYears($testCase);
-        }
         $expected = [
             '5',
             '2+',
@@ -57,33 +53,77 @@ class SpotifyHelperTest extends TestCase
             '3-7+',
             'several',
         ];
+        $result = [];
+        foreach ($testCases as $testCase) {
+            $result[] = SpotifyHelper::getYears($testCase);
+        }
         $this->assertEquals($expected, $result);
     }
 
     /**
-     * Tests a helper method for checking string content
+     * Tests a helper method for checking string content.
      */
     public function testContains()
     {
-        $sh = new SpotifyHelper();
-        $result = $sh->contains("This is a test case, try me ...", ['This', 'me']);
+        $result = SpotifyHelper::contains('This is a test case, try me ...', ['This', 'me']);
         $this->assertTrue($result);
-        $result = $sh->contains("This is a test case, try me ...", ['that', 'these']);
+        $result = SpotifyHelper::contains('This is a test case, try me ...', ['that', 'these']);
         $this->assertFalse($result);
     }
 
     /**
-     * Tests the workflow for crawling just the first two pages
+     * Test exception of not loaded data.
      */
-    public function testRun()
+    public function testNotDataLoaded()
     {
-        $sh = new SpotifyHelper();
-        $allItems = $sh->run(2);
-        $this->assertEquals(32, count($allItems));
-        foreach ($allItems as $item) {
-            $this->assertNotEmpty($item->headline);
-            $this->assertNotEmpty($item->description);
-            $this->assertNotEmpty($item->url);
+        $this->expectException(\Exception::class);
+        $this->expectExceptionMessage('No loaded job posts! Try loadItems() first!');
+        $spotifyHelper = new SpotifyHelper();
+        $spotifyHelper->getAllItems();
+    }
+
+    /**
+     * Test job experience level detection.
+     */
+    public function testDetectExperience()
+    {
+        $testCases = [
+            ['Junior Java Developer', 'We offer unique possibility to join us on an internship. No experience is required!'],
+            ['Project Manager', 'Experienced project manager to manage small team of developers.'],
+            ['Software Engineer', 'Experienced senior developer with great skills required.'],
+            ['HR specialist', 'HR/administration person to work in our office.']
+        ];
+        $expected = [
+            1, 3, 2, 0
+        ];
+        $result = [];
+        foreach ($testCases as $testCase) {
+            $result[] = SpotifyHelper::detectExperience($testCase[0], $testCase[1]);
+        }
+        $this->assertEquals($expected, $result);
+    }
+
+    /**
+     * Tests the job post list reading and description fill, incl. pagination.
+     */
+    public function testLoadItems()
+    {
+        $spotifyHelper = new SpotifyHelper();
+        $spotifyHelper->loadItems(2);
+        $this->assertEquals(32, count($spotifyHelper->getAllItems()));
+        foreach ($spotifyHelper->getAllItems() as $item) {
+            $this->assertNotEmpty($item['headline']);
+            $this->assertNotEmpty($item['description']);
+            $this->assertNotEmpty($item['url']);
+        }
+        // Test years of experience detection and experience levels
+        $spotifyHelper->addDetectedYears();
+        foreach ($spotifyHelper->getAllItems() as $item) {
+            $this->assertNotEmpty($item['yearsRequired']);
+        }
+        $spotifyHelper->addDetectedExperience();
+        foreach ($spotifyHelper->getAllItems() as $item) {
+            $this->assertNotEmpty($item['experienceLevel']);
         }
     }
 }

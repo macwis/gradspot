@@ -1,26 +1,26 @@
 <?php
 /**
- * Crawler controller file
+ * Crawler controller file.
  */
 
 namespace App\Controller;
 
-use Symfony\Component\Routing\Annotation\Route;
+use App\Service\SpotifyHelper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
 use Symfony\Component\HttpFoundation\Request;
-use App\Service\SpotifyHelper;
+use Symfony\Component\Routing\Annotation\Route;
 
 /**
- * Controller class to interface the job crawler
+ * Controller class to interface the job crawler.
  */
 class CrawlerController extends AbstractController
 {
     /**
      * Specific endpoint to get jobs from Spotify Sweden.
      *
-     * @Route("/api/crawler/spotify")
+     * @Route("/api/crawl/spotify")
      */
-    public function spotify(SpotifyHelper $spotifyHelper, Request $request)
+    public function crawlSpotify(SpotifyHelper $spotifyHelper, Request $request)
     {
         // 1. Create a Crawler
         // Extract:
@@ -28,17 +28,14 @@ class CrawlerController extends AbstractController
         // 2. Headlines
         // 3. Descriptions
         $demo = $request->query->get('demo') != null ? true : false;
-        $jobposts = $spotifyHelper->run($demo ? 1 : 0);
+        $spotifyHelper->loadItems($demo ? 1 : 0);
 
         // 2. Detect experience
-        $spotifyHelper->detectExperience($jobposts);
+        $spotifyHelper->addDetectedExperience();
 
         // 3. Detect/guess required years of experience
-        $spotifyHelper->detectYears($jobposts);
+        $spotifyHelper->addDetectedYears();
 
-        // Clean-up to make it a nice JSON API
-        $spotifyHelper->cleanUp($jobposts);
-
-        return $this->json($jobposts);
+        return $this->json($spotifyHelper->getAllItems());
     }
 }

@@ -195,7 +195,8 @@ class SpotifyHelper
      *
      * @param GuzzleHttp $httpClient
      */
-    public function setHttpClient(Client $httpClient) {
+    public function setHttpClient(Client $httpClient)
+    {
         $this->httpClient = $httpClient;
     }
 
@@ -247,7 +248,7 @@ class SpotifyHelper
         $content = $response->getBody();
         $startPos = stripos($content, '<div class="column-inner">');
         $endPos = stripos($content, '<div class="col-md-4 col-lg-3">');
-        return trim(substr($content, $startPos,$endPos - $startPos));
+        return trim(substr($content, $startPos, $endPos - $startPos));
     }
 
     /**

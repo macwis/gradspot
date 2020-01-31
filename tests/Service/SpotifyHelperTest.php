@@ -6,11 +6,11 @@
 namespace App\Tests\Service;
 
 use App\Service\SpotifyHelper;
-use PHPUnit\Framework\TestCase;
 use GuzzleHttp\Client;
 use GuzzleHttp\Handler;
 use GuzzleHttp\HandlerStack;
 use GuzzleHttp\Psr7\Response;
+use PHPUnit\Framework\TestCase;
 
 /**
  * Test suite.
@@ -112,12 +112,12 @@ class SpotifyHelperTest extends TestCase
     public function testLoadItems()
     {
         $fixtures = [
-            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/page1.json'),
-            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/jobpost1.html'),
-            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/jobpost2.html'),
-            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/page2.json'),
-            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/jobpost3.html'),
-            file_get_contents(realpath(dirname(__FILE__)) . '/fixtures/page3.json'),
+            file_get_contents(realpath(dirname(__FILE__)).'/fixtures/page1.json'),
+            file_get_contents(realpath(dirname(__FILE__)).'/fixtures/jobpost1.html'),
+            file_get_contents(realpath(dirname(__FILE__)).'/fixtures/jobpost2.html'),
+            file_get_contents(realpath(dirname(__FILE__)).'/fixtures/page2.json'),
+            file_get_contents(realpath(dirname(__FILE__)).'/fixtures/jobpost3.html'),
+            file_get_contents(realpath(dirname(__FILE__)).'/fixtures/page3.json'),
         ];
         $mock = new Handler\MockHandler([
             new Response(200, [], $fixtures[0]),

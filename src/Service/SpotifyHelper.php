@@ -30,16 +30,6 @@ class SpotifyHelper
         'search' => '',
         'locations[]' => 'sweden',
     ];
-    /**
-     * Predefined set of options for the request.
-     */
-    const URL_OPTIONS = [
-        'http' => [
-            'header' => "Content-type: application/x-www-form-urlencoded\r\n",
-            'method' => 'POST',
-            'content' => '',
-        ],
-    ];
 
     /**
      * @var LoggerInterface Logger interface

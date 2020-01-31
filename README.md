@@ -50,13 +50,13 @@ Generated HTML report will be available in `reports` directory.
 ```
  Summary:                 
   Classes: 100.00% (2/2)  
-  Methods: 100.00% (13/13)
-  Lines:   100.00% (66/66)
+  Methods: 100.00% (14/14)
+  Lines:   100.00% (67/67)
 
 \App\Controller::App\Controller\CrawlerController
   Methods: 100.00% ( 1/ 1)   Lines: 100.00% (  5/  5)
 \App\Service::App\Service\SpotifyHelper
-  Methods: 100.00% (12/12)   Lines: 100.00% ( 61/ 61)
+  Methods: 100.00% (13/13)   Lines: 100.00% ( 62/ 62)
 ```
 
 

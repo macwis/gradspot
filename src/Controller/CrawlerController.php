@@ -7,6 +7,7 @@ namespace App\Controller;
 
 use App\Service\SpotifyHelper;
 use Symfony\Bundle\FrameworkBundle\Controller\AbstractController;
+use Symfony\Component\HttpFoundation\JsonResponse;
 use Symfony\Component\HttpFoundation\Request;
 use Symfony\Component\Routing\Annotation\Route;
 
@@ -19,6 +20,11 @@ class CrawlerController extends AbstractController
      * Specific endpoint to get jobs from Spotify Sweden.
      *
      * @Route("/api/crawl/spotify")
+     * @param SpotifyHelper $spotifyHelper
+     * @param Request $request
+     *
+     * @return JsonResponse
+     * @throws \Exception
      */
     public function crawlSpotify(SpotifyHelper $spotifyHelper, Request $request)
     {

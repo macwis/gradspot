@@ -63,8 +63,6 @@ class SpotifyHelper
      * Method to run the crawling of jobs for Spotify Sweden.
      *
      * @param int $pagesLimit Limit the number of pages for crawling
-     *
-     * @return array
      */
     public function loadItems($pagesLimit = 0)
     {
@@ -88,8 +86,6 @@ class SpotifyHelper
 
     /**
      * Using the regexp iterate through and populate years_required property.
-     *
-     * @param array $jobposts An job posts collection to be used for the detection
      */
     public function addDetectedYears()
     {
@@ -186,7 +182,7 @@ class SpotifyHelper
     /**
      * Option to pass customized HTTP client class, helpful for unit-tests to pass a mocked client for requests.
      *
-     * @param GuzzleHttp $httpClient
+     * @param Client $httpClient
      */
     public function setHttpClient(Client $httpClient)
     {

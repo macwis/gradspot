@@ -43,11 +43,14 @@ class SpotifyHelper
      * @var array Buffer for the current page processing
      */
     private $pageItems = [];
+    /**
+     * @var Client HTTP client instance
+     */
+    private $httpClient;
 
     /**
      * Class instance constructor.
      *
-     * @param null $httpClient
      * @param LoggerInterface $logger Logger interface
      */
     public function __construct(LoggerInterface $logger = null)
